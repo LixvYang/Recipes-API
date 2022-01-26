@@ -1,7 +1,8 @@
-package handler
+package handlers
 
 import (
 	// "fmt"
+	// "os"
 	"encoding/json"
 	"net/http"
 	"log"
@@ -149,57 +150,81 @@ func (handler *RecipesHandler) UpdateRecipeHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Recipe has been updated"})
 }
 
-// // swagger:operation DELETE /recipes/{id} recipes deleteRecipe
-// // Delete an existing recipe
-// // ---
-// // produces:
-// // - application/json
-// // parameters:
-// //   - name: id
-// //     in: path
-// //     description: ID of the recipe
-// //     required: true
-// //     type: string
-// // responses:
-// //     '200':
-// //         description: Successful operation
-// //     '404':
-// //         description: Invalid recipe ID
-// func DeleteRecipeHandler(c *gin.Context) {
-// 	id := c.Param("id")
+// swagger:operation DELETE /recipes/{id} recipes deleteRecipe
+// Delete an existing recipe
+// ---
+// produces:
+// - application/json
+// parameters:
+//   - name: id
+//     in: path
+//     description: ID of the recipe
+//     required: true
+//     type: string
+// responses:
+//     '200':
+//         description: Successful operation
+//     '404':
+//         description: Invalid recipe ID
+func (handler *RecipesHandler) DeleteRecipeHandler(c *gin.Context) {
+	id := c.Param("id")
+	objectId, _ := primitive.ObjectIDFromHex(id)
+	_, err := handler.collection.DeleteOne(handler.ctx, bson.M{
+			"_id":objectId,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return 
+	}
 
-// 	index := -1
-// 	for i := 0; i < len(recipes); i++ {
-// 		if recipes[i].ID == id {
-// 			index = i
-// 			break
-// 		}
-// 	}
+	c.JSON(http.StatusOK, gin.H{"message": "Recipe has been deleted"})
+}
 
-// 	if index == -1 {
-// 		c.JSON(http.StatusNotFound, gin.H{"error": "Recipe not found"})
-// 		return
-// 	}
+// swagger:operation GET /recipes/{id} recipes
+// Get one recipe
+// ---
+// produces:
+// - application/json
+// parameters:
+//   - name: id
+//     in: path
+//     description: recipe ID
+//     required: true
+//     type: string
+// responses:
+//     '200':
+//         description: Successful operation
+func (handler *RecipesHandler) GetOneRecipeHandler(c *gin.Context) {
+	id := c.Param("id")
+	objectId, _ := primitive.ObjectIDFromHex(id)
+	cur := handler.collection.FindOne(handler.ctx, bson.M{
+		"_id": objectId,
+	})
 
-// 	recipes = append(recipes[:index], recipes[index+1:]...)
+	var recipe models.Recipe
+	err := cur.Decode(&recipe)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-// 	c.JSON(http.StatusOK, gin.H{"message": "Recipe has been deleted"})
-// }
+	c.JSON(http.StatusOK, recipe)
+}
 
-// // swagger:operation GET /recipes/search recipes findRecipe
-// // Search recipes based on tags
-// // ---
-// // produces:
-// // - application/json
-// // parameters:
-// //   - name: tag
-// //     in: query
-// //     description: recipe tag
-// //     required: true
-// //     type: string
-// // responses:
-// //     '200':
-// //         description: Successful operation
+// swagger:operation GET /recipes/search recipes findRecipe
+// Search recipes based on tags
+// ---
+// produces:
+// - application/json
+// parameters:
+//   - name: tag
+//     in: query
+//     description: recipe tag
+//     required: true
+//     type: string
+// responses:
+//     '200':
+//         description: Successful operation
 // func SearchRecipesHandler(c *gin.Context) {
 // 	tag := c.Query("tag")
 // 	listOfRecipes := make([]Recipe, 0)
@@ -217,32 +242,4 @@ func (handler *RecipesHandler) UpdateRecipeHandler(c *gin.Context) {
 // 	}
 
 // 	c.JSON(http.StatusOK, listOfRecipes)
-// }
-
-// // swagger:operation GET /recipes/{id} recipes oneRecipe
-// // Get one recipe
-// // ---
-// // produces:
-// // - application/json
-// // parameters:
-// //   - name: id
-// //     in: path
-// //     description: ID of the recipe
-// //     required: true
-// //     type: string
-// // responses:
-// //     '200':
-// //         description: Successful operation
-// //     '404':
-// //         description: Invalid recipe ID
-// func GetRecipeHandler(c *gin.Context) {
-// 	id := c.Param("id")
-// 	for i := 0; i < len(recipes); i++ {
-// 		if recipes[i].ID == id {
-// 			c.JSON(http.StatusOK, recipes[i])
-// 			return
-// 		}
-// 	}
-
-// 	c.JSON(http.StatusNotFound, gin.H{"error": "Recipe not found"})
 // }
